@@ -5,46 +5,57 @@ endif
 OPT =
 .PHONY: build clean
 
-COMPOSE = docker-compose -p tyrun-pilulka \
-	-f ./docker/environment/${STAGE}/docker-compose.yml \
-	--project-directory ./docker/environment/${STAGE}
+COMPOSE = docker-compose -p pilulka_testapp \
+	-f ./docker/env/${STAGE}/docker-compose.yml \
+	--project-directory ./docker/env/${STAGE}
 
-RUN_IN_PHP = docker exec -i tyrun-pilulka-php-fpm
-RUN_IN_REDIS = docker exec -it tyrun-pilulka-percona
-RUN_IN_NGINX = docker exec -i tyrun-pilulka-nginx
+RUN_IN_PHP = docker exec -i pilulka_testapp-php-fpm
+RUN_IN_PERCONA = docker exec -it pilulka_testapp-percona
+RUN_IN_NGINX = docker exec -i pilulka_testapp-nginx
 
-#Build and run containers then run composer update
-build:
+install:
+	make setup
 	${COMPOSE} up -d
 	make composer
-
-#start the app
+	make migrate
 up:
 	${COMPOSE} up -d
 
-#stop the app
-down:
-	${COMPOSE} down --remove-orphans
+setup:
+	php ./docker/env/${STAGE}/setup.php
 
-#restart the app
+build:
+	make composer
+	make setup
+	make migrate
+
+composer:
+	${RUN_IN_PHP} composer update --prefer-dist
+
+composer-require:
+	${RUN_IN_PHP} composer require ${NAME}
+
+migrate:
+	make flush-schema-cache
+	${RUN_IN_PHP} php /var/www/yii migrate --interactive=0
+
+migrate-down:
+	make flush-schema-cache
+	${RUN_IN_PHP} php /var/www/yii migrate/down ${AMOUNT} --interactive=0
+
+migrate-create:
+	${RUN_IN_PHP} php /var/www/yii migrate/create ${NAME} --interactive=0
+
 restart:
 	make down
 	make up
 
-#stop containers and remove all data from it
-prune:
+down:
+	${COMPOSE} down --remove-orphans
+
+flush-schema-cache:
+	${RUN_IN_PHP} php /var/www/yii cache/flush-schema --interactive=0
+
+clean:
 	make down
-	docker volume rm legend_db-data legend_db-logs legend_nginx-logs
-
-#Update packages using composer in php-fpm container.
-composer:
-	${RUN_IN_PHP} composer update --prefer-dist
-
-#Requiring packages using composer in php-fpm container.
-#Example: make composer-require NAME='--dev symfony/phpunit-bridge'
-composer-require:
-	${RUN_IN_PHP} composer require ${NAME}
-
-#Reload nginx config in container
-nginx-reload:
-	${RUN_IN_NGINX} nginx -s reload
+	docker volume rm pilulka_testapp_db-data pilulka_testapp_db-logs pilulka_testapp_nginx-logs

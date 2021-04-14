@@ -1,0 +1,91 @@
+version: '3.7'
+
+services:
+  php-fpm:
+    build:
+      context: ../../php-fpm
+      dockerfile: Dockerfile
+      args:
+        - USER_ID
+        - GROUP_ID
+    container_name: pilulka_testapp-php-fpm
+    restart: always
+    volumes:
+      # Файлы проекта
+      - ./../../../app:/var/www:rw
+      # Конфигурация
+      - ./../../php-fpm/conf/conf.d:/usr/local/etc/php/conf.d:ro
+      - ./../../php-fpm/conf/php-fpm.d/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+    working_dir: /var/www
+    command: "php-fpm"
+    depends_on:
+      - percona
+      - redis
+
+  nginx:
+    build:
+      context: ../../nginx
+      dockerfile: Dockerfile
+      args:
+        - USER_ID
+        - GROUP_ID
+    container_name: pilulka_testapp-nginx
+    restart: always
+    volumes:
+      # Файлы проекта
+      - ./../../../app:/var/www:rw
+      # Конфигурация (общая и виртуал.хосты)
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./../../nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Директория куда будут лететь логи
+      - pilulka_testapp-nginx-logs:/var/log/nginx:rw
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - php-fpm
+
+  percona:
+    build:
+      context: ../../percona
+      dockerfile: Dockerfile
+      args:
+        - USER_ID
+        - GROUP_ID
+    container_name: pilulka_testapp-percona
+    environment:
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE
+    restart: always
+    volumes:
+      # Путь к файлам БД. Сокет отделен от данных файлов
+      - pilulka_testapp-database:/var/lib/mysql:rw
+      # Конфигурации
+      - ./../../percona/conf.d:/etc/my.cnf.d:ro
+      # Директория куда будут лететь логи
+      - pilulka_testapp-db-logs:/var/log/mysql:rw
+      # Для cron бекапов
+      - ./../../percona/scripts:/opt/mysql/scripts:ro
+    ports:
+      - 3306:3306
+
+  redis:
+    build:
+      context: ../../redis
+      dockerfile: Dockerfile
+      args:
+        - USER_ID
+        - GROUP_ID
+    container_name: pilulka_testapp-redis
+    restart: always
+    volumes:
+      # Директория с данными редиса
+      - pilulka_testapp-redis:/data
+
+volumes:
+  pilulka_testapp-database:
+  pilulka_testapp-db-logs:
+  pilulka_testapp-nginx-logs:
+  pilulka_testapp-redis:
