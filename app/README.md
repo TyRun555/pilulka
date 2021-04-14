@@ -2,6 +2,7 @@
 
 ## Desscription
 Test app for getting last 100 tweets that contains hashtag pilulka.cz or link to pilulka.cz
+using Twitter API (v1.1)
 
 ## Installation
 1. Clone repo
