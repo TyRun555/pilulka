@@ -2,7 +2,6 @@
 
 namespace app\controllers;
 
-use app\controllers\base\BaseRestApiController;
 use DateTime;
 use DateTimeZone;
 use stdClass;

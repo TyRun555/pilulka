@@ -1,5 +1,6 @@
 <?php
 
+use app\components\TwitterClient;
 use yii\redis\Cache;
 use yii\redis\Connection;
 
@@ -15,7 +16,7 @@ $config = [
         '@npm' => '@vendor/npm-asset',
     ],
     'components' => [
-        'twitter' => [
+        'twitterClient' => [
             'class' => TwitterClient::class
         ],
         'request' => [

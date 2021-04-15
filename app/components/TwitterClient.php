@@ -1,10 +1,14 @@
 <?php
+namespace app\components;
 
-
+use Yii;
 use yii\authclient\clients\Twitter;
 use yii\authclient\OAuthToken;
 use yii\base\Component;
 
+/**
+ * @property-read array $lastTweets
+ */
 class TwitterClient extends Component
 {
     private $apiToken;
@@ -29,7 +33,7 @@ class TwitterClient extends Component
 
     public function getLastTweets()
     {
-        $rawTweets = Yii::$app->twitterClient->api('search/tweets.json?q=pilulka.cz %23pilulka', 'GET');
+        $rawTweets = $this->client->api('search/tweets.json?q=pilulka.cz %23pilulka', 'GET');
         $tweets = [];
         for ($i = 0; $i < 100; $i++) {
             $tweets[$i] = $tweets['statuses'][$i];
